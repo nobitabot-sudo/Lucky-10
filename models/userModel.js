@@ -1,6 +1,24 @@
 // models/userModel.js
-// Ye placeholder file hai agar tum Supabase use kar rahe ho
+const { supabase } = require("../config/db");
 
-module.exports = {
-    table: 'users' // Supabase me tumne jo table banaya uska naam
-};
+async function getUserByEmail(email) {
+    const { data, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("email", email)
+        .single();
+    if (error) return null;
+    return data;
+}
+
+async function createUser(userData) {
+    const { data, error } = await supabase
+        .from("users")
+        .insert([userData])
+        .select()
+        .single();
+    if (error) throw error;
+    return data;
+}
+
+module.exports = { getUserByEmail, createUser };
