@@ -4,9 +4,9 @@ const { getUserByEmail, createUser } = require("../models/userModel");
 
 // 📌 REGISTER USER
 const registerUser = async (req, res) => {
-    const { fullName, email, password, age } = req.body;
+    const { name, email, password, age } = req.body;
 
-    if (!fullName || !email || !password || !age) {
+    if (!name || !email || !password || !age) {
         return res.status(400).json({ error: "Please fill all fields" });
     }
 
@@ -22,7 +22,7 @@ const registerUser = async (req, res) => {
 
         // Create new user
         const newUser = await createUser({
-            fullName,
+            name,
             email,
             password: hashedPassword,
             age,
