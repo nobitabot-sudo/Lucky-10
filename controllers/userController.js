@@ -1,8 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const { getUserByEmail, createUser } = require("../models/userModel"); 
+const { getUserByEmail, createUser } = require("../models/userModel");
 
-// 📌 REGISTER USER
 const registerUser = async (req, res) => {
     const { name, email, password, age } = req.body;
 
@@ -11,33 +10,32 @@ const registerUser = async (req, res) => {
     }
 
     try {
-        // Check if user exists
         const existingUser = await getUserByEmail(email);
         if (existingUser) {
             return res.status(400).json({ error: "User already exists" });
         }
 
-        // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Create new user
         const newUser = await createUser({
             name,
             email,
             password: hashedPassword,
             age,
-            role: "user", // Default role user
-            wallet: 0
+            role: "user"
         });
 
-        res.status(201).json({ message: "User registered successfully", userId: newUser.id });
+        if (!newUser) {
+            return res.status(500).json({ error: "Failed to register user" });
+        }
+
+        res.status(201).json({ message: "User registered successfully" });
     } catch (error) {
         console.error("Error in registerUser:", error);
         res.status(500).json({ error: "Server error" });
     }
 };
 
-// 📌 LOGIN USER
 const loginUser = async (req, res) => {
     const { email, password } = req.body;
 
@@ -66,8 +64,8 @@ const loginUser = async (req, res) => {
         res.json({
             token,
             role: user.role,
-            fullName: user.fullName,
-            wallet: user.wallet
+            name: user.name,
+            wallet: 0
         });
     } catch (error) {
         console.error("Error in loginUser:", error);
