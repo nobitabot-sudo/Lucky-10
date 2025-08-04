@@ -1,11 +1,14 @@
 // config/supabase.js
-import { createClient } from '@supabase/supabase-js';
+require('dotenv').config(); // This loads your .env variables
+const { createClient } = require('@supabase/supabase-js');
 
-// These should match your .env variable names
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_ANON_KEY;
 
-// Initialize Supabase client
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error('Supabase URL and ANON_KEY must be defined in .env');
+}
+
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-export default supabase;
+module.exports = supabase;
