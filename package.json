@@ -3,28 +3,26 @@
   "version": "1.0.0",
   "description": "Lucky 10 Game Backend with Supabase",
   "main": "server.js",
-  "type": "module",
+  "type": "commonjs",
   "scripts": {
     "start": "NODE_ENV=production node server.js",
     "dev": "NODE_ENV=development nodemon server.js",
-    "test": "NODE_ENV=test jest --watchAll",
-    "lint": "eslint .",
-    "migrate": "knex migrate:latest"
+    "test": "NODE_ENV=test jest --detectOpenHandles",
+    "lint": "eslint ."
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.0",
-    "bcryptjs": "^2.4.3",
+    "@supabase/supabase-js": "^2.53.0",
+    "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "express": "^4.18.2",
-    "express-rate-limit": "^7.1.5",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "express-validator": "^7.0.1",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
-    "pino": "^8.16.0",
-    "pino-http": "^8.3.1",
+    "express-rate-limit": "^7.1.5",
     "http-errors": "^2.0.0",
-    "knex": "^3.1.0",
-    "pg": "^8.11.3"
+    "pino": "^8.16.0",
+    "pino-http": "^8.3.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.2",
@@ -44,8 +42,5 @@
       "/node_modules/",
       "/tests/"
     ]
-  }
-  "dependencies": {
-  "express-validator": "^7.0.1"
   }
 }
