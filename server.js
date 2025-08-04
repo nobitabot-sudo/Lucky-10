@@ -4,94 +4,73 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-const authRoutes = require('./routes/auth');
-const userRoutes = require('./routes/users');
-const walletRoutes = require('./routes/wallet');
-const betRoutes = require('./routes/bets');
-const roundRoutes = require('./routes/round');
-const resultRoutes = require('./routes/results');
-const adminRoutes = require('./routes/admin');
+// Initialize Supabase first
+const supabase = require('./config/supabase');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// CORS Configuration - MUST BE FIRST
-const corsOptions = {
-  origin: "*", // Allow all origins
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: [
-    "Content-Type", 
-    "Authorization", 
-    "X-Requested-With",
-    "Accept",
-    "Origin"
-  ],
-  credentials: false,
-  optionsSuccessStatus: 200
-};
-
-app.use(cors(corsOptions));
-
-// Handle preflight requests
-app.options('*', cors(corsOptions));
-
-// Security middleware
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
+// Middleware
+app.use(cors({
+  origin: process.env.CORS_ORIGINS?.split(',') || '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
-});
-app.use(limiter);
-
-// Body parsing middleware
+app.use(helmet());
 app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'OK', 
-    message: 'Lucky 10 Backend is running',
-    timestamp: new Date().toISOString()
-  });
+// Rate limiting
+app.use(rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100
+}));
+
+// Routes
+const routes = [
+  require('./routes/auth'),
+  require('./routes/users'),
+  require('./routes/wallet'),
+  require('./routes/bets'),
+  require('./routes/round'),
+  require('./routes/results'),
+  require('./routes/admin')
+];
+
+routes.forEach(route => {
+  app.use('/api', route);
 });
 
-// API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/wallet', walletRoutes);
-app.use('/api/bets', betRoutes);
-app.use('/api/round', roundRoutes);
-app.use('/api/results', resultRoutes);
-app.use('/api/admin', adminRoutes);
-
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({ 
-    error: 'Route not found',
-    path: req.originalUrl,
-    method: req.method
-  });
+// Health check with DB verification
+app.get('/health', async (req, res) => {
+  try {
+    await supabase.from('users').select('*').limit(1);
+    res.json({ 
+      status: 'healthy',
+      database: 'connected',
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    res.status(500).json({
+      status: 'unhealthy',
+      database: 'disconnected',
+      error: err.message
+    });
+  }
 });
 
-// Global error handler
+// Error handling
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(err.status || 500).json({
-    error: err.message || 'Internal server error',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  console.error(err.stack);
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: err.message
   });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Lucky 10 Backend running on port ${PORT}`);
-  console.log(`📡 Health check: http://localhost:${PORT}/health`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Supabase URL: ${process.env.SUPABASE_URL}`);
 });
 
 module.exports = app;
