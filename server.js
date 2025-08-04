@@ -1,36 +1,97 @@
-const express = require("express");
-const cors = require("cors");
-const dotenv = require("dotenv");
-const userRoutes = require("./routes/userRoutes");
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+require('dotenv').config();
 
-dotenv.config();
+const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/users');
+const walletRoutes = require('./routes/wallet');
+const betRoutes = require('./routes/bets');
+const roundRoutes = require('./routes/round');
+const resultRoutes = require('./routes/results');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-// ✅ CORS Fix
-app.use(cors({
-    origin: "*", // yaha apna frontend ka URL dal sakte ho for security
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+// CORS Configuration - MUST BE FIRST
+const corsOptions = {
+  origin: "*", // Allow all origins
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: [
+    "Content-Type", 
+    "Authorization", 
+    "X-Requested-With",
+    "Accept",
+    "Origin"
+  ],
+  credentials: false,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
+
+// Handle preflight requests
+app.options('*', cors(corsOptions));
+
+// Security middleware
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
-// ✅ Middleware
-app.use(express.json());
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.'
+});
+app.use(limiter);
 
-// ✅ Routes
-app.use("/api/users", userRoutes);
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// ✅ Test Route
-app.get("/", (req, res) => {
-    res.send("Lucky-10 Backend Running 🚀");
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK', 
+    message: 'Lucky 10 Backend is running',
+    timestamp: new Date().toISOString()
+  });
 });
 
-// ✅ Global Error Handler
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/wallet', walletRoutes);
+app.use('/api/bets', betRoutes);
+app.use('/api/round', roundRoutes);
+app.use('/api/results', resultRoutes);
+app.use('/api/admin', adminRoutes);
+
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({ 
+    error: 'Route not found',
+    path: req.originalUrl,
+    method: req.method
+  });
+});
+
+// Global error handler
 app.use((err, req, res, next) => {
-    console.error("Server Error:", err);
-    res.status(500).json({ error: "Internal Server Error" });
+  console.error('Error:', err);
+  res.status(err.status || 500).json({
+    error: err.message || 'Internal server error',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
 });
 
-// ✅ Start Server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Lucky 10 Backend running on port ${PORT}`);
+  console.log(`📡 Health check: http://localhost:${PORT}/health`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+});
+
+module.exports = app;
